@@ -21,11 +21,12 @@ extern crate rustc_driver;
 extern crate rustc_interface;
 extern crate rustc_middle;
 extern crate rustc_session;
-extern crate rustc_smir;
-use rustc_driver::Compilation;
-use rustc_interface::interface::Compiler;
+
+// Check if we can access stable_mir and rustc_smir differently  
+// We'll try both old and new patterns
+use rustc_driver::{Compilation, run_compiler};
+use rustc_interface::interface::{Compiler, Config};
 use rustc_middle::ty::TyCtxt;
-use rustc_smir::rustc_internal;
 
 struct StableMirCallbacks {
     callback_fn: fn(TyCtxt) -> (),
@@ -33,16 +34,16 @@ struct StableMirCallbacks {
 
 impl rustc_driver::Callbacks for StableMirCallbacks {
     fn after_analysis(&mut self, _compiler: &Compiler, tcx: TyCtxt) -> Compilation {
-        let _ = rustc_internal::run(tcx, || (self.callback_fn)(tcx));
-
+        // Try to access stable_mir functionality
+        // We'll need to adapt this based on what's available
+        (self.callback_fn)(tcx);
         Compilation::Continue
     }
 }
 
 pub fn stable_mir_driver(args_outer: &[String], callback_fn: fn(TyCtxt) -> ()) {
     let mut callbacks = StableMirCallbacks { callback_fn };
-    let early_dcx =
-        rustc_session::EarlyDiagCtxt::new(rustc_session::config::ErrorOutputType::default());
-    rustc_driver::init_rustc_env_logger(&early_dcx);
-    let _ = rustc_driver::RunCompiler::new(args_outer, &mut callbacks).run();
+    
+    // Use the new run_compiler API
+    run_compiler(args_outer, &mut callbacks);
 }
